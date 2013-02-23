@@ -18,7 +18,7 @@ import org.json.JSONObject;
 
 public class WilTicTacToeAI {
 
-	public static final String host = "http://localhost:8000";
+	public static final String host = "http://130.74.96.75:8000";
 	public static int id, gId, auth;
 	public static Random rand = new Random();
 	public static boolean gameRunning = true;
@@ -121,27 +121,21 @@ public class WilTicTacToeAI {
 								}
 							}
 							else {
-								for(int i = 0; i < 2; i++) {
-									q = coords[0];
-									p = coords[1];
-									haventFoundMove = false;
-								}
-							}
-						}
-						else {
-							for(int i = 0; i < 2; i++) {
 								q = coords[0];
 								p = coords[1];
 								haventFoundMove = false;
 							}
 						}
-					}
-					else {
-						for(int i = 0; i < 2; i++) {
+						else {
 							q = coords[0];
 							p = coords[1];
 							haventFoundMove = false;
 						}
+					}
+					else {
+						q = coords[0];
+						p = coords[1];
+						haventFoundMove = false;
 					}
 					
 					/*else {
