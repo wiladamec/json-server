@@ -1,5 +1,7 @@
 package game;
 
+import java.util.ArrayList;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -10,14 +12,14 @@ import server.Scoreboard;
 public class Checkers implements GenGame {
 
 	private int board[][] = {
-			{ 1, 0, 1, 0, 1, 0, 1, 0 }, 
-			{ 0, 1, 0, 1, 0, 1, 0, 1 }, 
-			{ 1, 0, 1, 0, 1, 0, 1, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 }, 
-			{ 0, 0, 0, 0, 0, 0, 0, 0 }, 
-			{ 0, 2, 0, 2, 0, 2, 0, 2 },
-			{ 2, 0, 2, 0, 2, 0, 2, 0 },
-			{ 0, 2, 0, 2, 0, 2, 0, 2 }
+			{ 0, -1, 0, -1, 0, -1, 0, -1 }, 
+			{ -1, 0, -1, 0, -1, 0, -1, 0 }, 
+			{ 0, -1, 0, -1, 0, -1, 0, -1 },
+			{ -1, -1, -1, -1, -1, -1, -1, -1 }, 
+			{ -1, -1, -1, -1, -1, -1, -1, -1 }, 
+			{ -1, 1, -1, 1, -1, 1, -1, 1 },
+			{ 1, -1, 1, -1, 1, -1, 1, -1 },
+			{ -1, 1, -1, 1, -1, 1, -1, 1 }
 			};
 	private int whoseTurn = 0;
 	private boolean gameRunning = false;
@@ -58,9 +60,7 @@ public class Checkers implements GenGame {
 	public JSONObject doCommand(JSONObject input) throws JSONException {
 		
 		int x1 = 0;
-		int x2 = 0;
 		int y1 = 0;
-		int y2 = 0;
 		
 		
 		int id = -1;
@@ -81,17 +81,35 @@ public class Checkers implements GenGame {
 
 		if (commandName.equalsIgnoreCase("move")) {
 			
-			x1 = command.getInt(1);
-			y1 = command.getInt(2);
-			x2 = command.getInt(3);
-			y2 = command.getInt(4);
-			
-			if(doMove(x1,y1,x2,y2)){
+			if (whoseTurn-1 == id) {
 				
-			}else{
-				//invalid move
+				x1 = command.getInt(1);
+				y1 = command.getInt(2);
+
+				ArrayList<Integer> coordList = new ArrayList<Integer>();
+				
+				for(int i=3;i<command.length()-3;i++){
+					coordList.add(command.getInt(i)); //this should be atleast 2
+				}
+				
+				if(validMove(x1,y1,coordList)){
+					doMove(x1,y1,coordList);
+					System.out.println("Move successful");
+					error = 0;
+					if (checkWin(id)) {
+						System.out.println("Player " + id + " won"); 
+						Scoreboard.incrementScore(Integer.toString(input.getInt("GAMEID")));
+						won = true;
+						whoWon = id;
+						gameRunning = false;
+					}
+					
+				}else{
+					error = 2;
+				}
+				
 			}
-			
+				
 			
 		}
 
@@ -108,79 +126,89 @@ public class Checkers implements GenGame {
 		
 	}
 
-	private boolean doMove(int x1, int y1, int x2, int y2) {
+	private boolean checkWin(int id) {
 		
-		
-		if(board[x1][y1] == whoseTurn || board[x1][y1] == whoseTurn + 2){ //its our piece
-			
-			if(board[x1][y1] == whoseTurn){ //we have a normal piece (non-king)
-				if( ((y2==y1+((whoseTurn==1)?1:-1)) && (x2==x1+1 || x2==x1-1)) && inBounds(x2,y2)){ //we have a legal NORMAL move
-					if(board[x2][y2]==0){ //the place we want to move is empty
-						board[x2][y2] = whoseTurn;
-						board[x1][y1] = 0;
-						return true;
-					}
-				}
-				
-					
-				if(validJump(x1,y1,x2,y2)){
-						
-				}
-					
-				
-			}
-			
-			if(board[x1][y1] == whoseTurn+2){ //we have a king piece
-				if( ((y2==y1+1 || y2==y1-1) && (x2==x1+1 || x2==x1-1)) && inBounds(x2,y2)){ //we have a legal move
-					if(board[x2][y2]==0){ //the place we want to move is empty
-						board[x2][y2] = whoseTurn+2;
-						board[x1][y1] = 0;
-						return true;
-					}
+		for(int i=0;i<8;i++){
+			for(int j=0;j<8;j++){
+				if(board[i][j]!=id && board[i][j]!=id+2 && board[i][j]!=-1){
+					return false;
 				}
 			}
-			
-			
-		}else{
-			return false; //we don't have a piece at (x1,y1)
 		}
+		return true;
 		
-		
-		return false;
 	}
 
-	private boolean validJump(int x1, int y1, int x2, int y2) {
+	private boolean validMove(int x1, int y1, ArrayList<Integer> coordList) {
 		
-		if(board[x1][y1] == whoseTurn){ //we have a normal piece (non-king)
-			if( ((y2==y1+((whoseTurn==1)?2:-2)) && (x2==x1+2 || x2==x1-2)) && inBounds(x2,y2)){
-				return true;
-			}	
-		}
-		if(board[x1][y1] == whoseTurn+2){ //we have a king piece
-			if( ((y2==y1+2 || y2==y1-2) && (x2==x1+2 || x2==x1-2)) && inBounds(x2,y2)){
-				//if(Math.abs(a))
-				return true;
-			}
-		}
+		boolean areJumps = (coordList.size()==2) ? false: true;
 		
-		return false;
-	}
 	
-	private boolean validMove(int x1, int y1, int x2, int y2) {
-		
-		if(board[x1][y1] == whoseTurn){ //we have a normal piece (non-king)
-			if( ((y2==y1+((whoseTurn==1)?1:-1)) && (x2==x1+1 || x2==x1-1)) && inBounds(x2,y2)){
-				return true;
-			}	
+		/*	
+		if (!areJumps) {
+			int x2 = coordList.get(0);
+			int y2 = coordList.get(1);
+
+			if (board[x1][y1] == whoseTurn) { // we have a normal piece
+				if (((y2 == y1 + ((whoseTurn == 1) ? 1 : -1)) && (x2 == x1 + 1 || x2 == x1 - 1)) && inBounds(x2, y2)) {
+					if (board[x2][y2] == 0) {
+						return true;
+					}
+				}
+
+			}
+
+			if (board[x1][y1] == whoseTurn + 2) { // we have a king piece
+				if (((y2 == y1 + 1 || y2 == y1 - 1) && (x2 == x1 + 1 || x2 == x1 - 1))
+						&& inBounds(x2, y2)) { // we have a legal move
+					if (board[x2][y2] == 0) {
+						return true;
+					}
+				}
+			}
+
 		}
-		if(board[x1][y1] == whoseTurn+2){ //we have a king piece
-			if( ((y2==y1+1 || y2==y1-1) && (x2==x1+1 || x2==x1-1)) && inBounds(x2,y2)){ //we have a legal move
-				return true;
+
+		return false;
+	*/
+	return true;
+	}
+
+	private void doMove(int x1, int y1, ArrayList<Integer> coordList) {
+
+		boolean areJumps = (coordList.size()==2) ? false: true;
+		
+		if (!areJumps) {
+			
+			board[coordList.get(0)][coordList.get(1)] = board[x1][y1];
+			board[x1][y1] = -1;
+			
+		}else{
+			
+			//handles first jump
+			board[coordList.get(0)][coordList.get(1)] = board[x1][y1];
+			board[x1][y1] = -1;
+			board[(x1+coordList.get(0))/2][(y1+coordList.get(1))/2] = -1;
+			
+			for(int i=2;i<coordList.size();i+=2){ //handles the rest of the jumps
+				board[coordList.get(i)][coordList.get(i+1)] = board[i-2][i-1];
+				board[x1][y1] = -1;
+				board[(coordList.get(i-2)+coordList.get(i))/2][(coordList.get(i-1)+coordList.get(i+1))/2] = -1;
 			}
 		}
 		
-		return false;
+		
+		if (whoseTurn == 1) {
+			whoseTurn = 0;
+		} else {
+			if (whoseTurn == 0)
+				whoseTurn = 1;
+		}
+		
+		return;
 	}
+
+	
 
 	private boolean inBounds(int x, int y) {
 		return (x>=0 && x<8) && (y>=0 && y<8);
